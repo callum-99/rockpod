@@ -101,19 +101,23 @@ int button_apply_acceleration(const unsigned int data);
 #define BUTTON_MULTIMEDIA   0x10000000
 #define BUTTON_REDRAW       0x20000000
 
-#define BUTTON_MULTIMEDIA_PLAYPAUSE (BUTTON_MULTIMEDIA|0x01)
-#define BUTTON_MULTIMEDIA_STOP      (BUTTON_MULTIMEDIA|0x02)
-#define BUTTON_MULTIMEDIA_PREV      (BUTTON_MULTIMEDIA|0x04)
-#define BUTTON_MULTIMEDIA_NEXT      (BUTTON_MULTIMEDIA|0x08)
-#define BUTTON_MULTIMEDIA_REW       (BUTTON_MULTIMEDIA|0x10)
-#define BUTTON_MULTIMEDIA_FFWD      (BUTTON_MULTIMEDIA|0x20)
+#define BUTTON_MULTIMEDIA_PLAYPAUSE   (BUTTON_MULTIMEDIA|0x01)
+#define BUTTON_MULTIMEDIA_STOP        (BUTTON_MULTIMEDIA|0x02)
+#define BUTTON_MULTIMEDIA_PREV        (BUTTON_MULTIMEDIA|0x04)
+#define BUTTON_MULTIMEDIA_NEXT        (BUTTON_MULTIMEDIA|0x08)
+#define BUTTON_MULTIMEDIA_REW         (BUTTON_MULTIMEDIA|0x10)
+#define BUTTON_MULTIMEDIA_FFWD        (BUTTON_MULTIMEDIA|0x20)
+#define BUTTON_MULTIMEDIA_VOLUME_UP   (BUTTON_MULTIMEDIA|0x40)
+#define BUTTON_MULTIMEDIA_VOLUME_DOWN (BUTTON_MULTIMEDIA|0x80)
 
-#define BUTTON_MULTIMEDIA_ALL       (BUTTON_MULTIMEDIA_PLAYPAUSE| \
-                                     BUTTON_MULTIMEDIA_STOP| \
-                                     BUTTON_MULTIMEDIA_PREV| \
-                                     BUTTON_MULTIMEDIA_NEXT| \
-                                     BUTTON_MULTIMEDIA_REW | \
-                                     BUTTON_MULTIMEDIA_FFWD)
+#define BUTTON_MULTIMEDIA_ALL         (BUTTON_MULTIMEDIA_PLAYPAUSE| \
+                                       BUTTON_MULTIMEDIA_STOP     | \
+                                       BUTTON_MULTIMEDIA_PREV     | \
+                                       BUTTON_MULTIMEDIA_NEXT     | \
+                                       BUTTON_MULTIMEDIA_REW      | \
+                                       BUTTON_MULTIMEDIA_FFWD     | \
+                                       BUTTON_MULTIMEDIA_VOLUME_UP| \
+                                       BUTTON_MULTIMEDIA_VOLUME_DOWN)
 
 #ifdef HAVE_TOUCHSCREEN
 long touchscreen_last_touch(void);

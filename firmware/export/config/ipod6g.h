@@ -275,7 +275,12 @@
 #define IPOD_ACCESSORY_PROTOCOL
 #define TARGET_EXTRA_THREADS 1
 #endif
+/* Inline earphone remote, decoded by the jack "Mikey" controller */
+#define HAVE_MIKEY_REMOTE
 #endif
+
+/* Enable inline controls */
+#define HAVE_MULTIMEDIA_KEYS
 
 /* Define this if you can switch on/off the accessory power supply */
 #define HAVE_ACCESSORY_SUPPLY

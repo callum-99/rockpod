@@ -37,6 +37,9 @@
 #include "uc87xx.h"
 #endif
 #include "clocking-s5l8702.h"
+#ifdef HAVE_MIKEY_REMOTE
+#include "mikey-target.h"
+#endif
 
 #define DEBUG_CANCEL BUTTON_MENU
 
@@ -134,6 +137,14 @@ bool dbg_hw_info(void)
 #ifdef IPOD_ACCESSORY_PROTOCOL
             _DEBUG_PRINTF("accessory present: %s",
                             pmu_accessory_present() ? "true" : "false");
+#endif
+#ifdef HAVE_MIKEY_REMOTE
+            /* r4/r5 are live register reads to help characterize the
+             * remote-ID behavior across units (it varies; see
+             * mikey-6g.c). r4 bit6 = ID bit, r5 = event register. */
+            _DEBUG_PRINTF("mikey remote ctrl: %s r4=%02x r5=%02x",
+                            mikey_present() ? "ok" : "--",
+                            mikey_read(4), mikey_read(5));
 #endif
             line++;
             _DEBUG_PRINTF("ADC:");
