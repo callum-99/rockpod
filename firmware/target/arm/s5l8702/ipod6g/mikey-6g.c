@@ -83,6 +83,12 @@
 #define MIKEY_CENTER_PULSE_POLLS  3     /* reported click length, 60ms */
 #define MIKEY_CENTER_OFF_POLLS    3     /* release debounce, 60ms */
 
+/* Window to wait after a release before deciding no more clicks are
+ * coming and finalizing the click count. At 20ms/poll this is ~360ms,
+ * a fairly standard double-click threshold. */
+#define MIKEY_CLICK_GAP_POLLS  18
+#define MIKEY_CLICK_MAX        3   /* single/double/triple; no need to wait past 3 */
+
 unsigned char mikey_read(int address)
 {
     /* default to "no press, no events" if the transfer fails: the chip
@@ -165,6 +171,9 @@ struct mikey_decode {
     bool center_down;    /* debounced "press already reported" */
     int center_off;      /* consecutive released polls */
     int center_pulse;    /* click pulse countdown */
+    int click_count;     /* clicks seen in the current burst, 0 = idle */
+    int click_gap;       /* polls left to wait for another click before finalizing */
+    int center_result;   /* which BUTTON_MULTIMEDIA_* code the pending pulse emits */
 };
 
 static void mikey_decode_reset(struct mikey_decode *d)
@@ -177,6 +186,9 @@ static void mikey_decode_reset(struct mikey_decode *d)
     d->center_down = false;
     d->center_off = MIKEY_CENTER_OFF_POLLS;
     d->center_pulse = 0;
+    d->click_count = 0;
+    d->click_gap = 0;
+    d->center_result = BUTTON_NONE;
 }
 
 /* Apply the phantom-load failsafe to one volume button's edge bits:
@@ -223,11 +235,18 @@ static int mikey_decode_poll(struct mikey_decode *d,
     if (!raw)
         d->armed = true;
 
-    /* click-only: emit a fixed pulse at each debounced rise */
+    /* click-counting: each debounced rise adds to the current burst
+     * and (re)starts the gap timer. The burst is finalized, and a
+     * pulse fired, once the gap closes with no further click or the
+     * count hits MIKEY_CLICK_MAX. */
     if (raw && d->armed)
     {
         if (!d->center_down && d->center_off >= MIKEY_CENTER_OFF_POLLS)
-            d->center_pulse = MIKEY_CENTER_PULSE_POLLS;
+        {
+            if (d->click_count < MIKEY_CLICK_MAX)
+                d->click_count++;
+            d->click_gap = MIKEY_CLICK_GAP_POLLS;
+        }
         d->center_down = true;
         d->center_off = 0;
     }
@@ -239,17 +258,35 @@ static int mikey_decode_poll(struct mikey_decode *d,
             d->center_down = false;
     }
 
-    bool center = false;
+    if (d->click_count > 0)
+    {
+        if (d->click_gap > 0)
+            d->click_gap--;
+
+        if (d->click_gap == 0 || d->click_count >= MIKEY_CLICK_MAX)
+        {
+            switch (d->click_count)
+            {
+                case 1:  d->center_result = BUTTON_MULTIMEDIA_PLAYPAUSE; break;
+                case 2:  d->center_result = BUTTON_MULTIMEDIA_NEXT;      break;
+                default: d->center_result = BUTTON_MULTIMEDIA_PREV;      break;
+            }
+            d->click_count = 0;
+            d->center_pulse = MIKEY_CENTER_PULSE_POLLS;
+        }
+    }
+
+    int center = 0;
     if (d->center_pulse > 0)
     {
-        center = true;
+        center = d->center_result;
         d->center_pulse--;
     }
 
     /* All buttons report as multimedia keys: handled globally by
      * default_event_handler on every screen, so volume and play/pause
      * work in menus, WPS and plugins alike, matching the OF. */
-    return (center    ? BUTTON_MULTIMEDIA_PLAYPAUSE   : 0)
+    return center
          | (d->vol_up ? BUTTON_MULTIMEDIA_VOLUME_UP   : 0)
          | (d->vol_dn ? BUTTON_MULTIMEDIA_VOLUME_DOWN : 0);
 }
