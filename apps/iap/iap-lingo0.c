@@ -1092,6 +1092,11 @@ void iap_handlepkt_mode0(const unsigned int len, const unsigned char *buf)
                 break;
             }
 
+#ifdef LOGF_ENABLE
+            logf("iap: AUTH SIGNATURE tid=%02x%02x len=%u state=%d", tid_hi_18, tid_lo_18, len, device.auth.state);
+#endif
+
+
             /* We don't verify the signature — just ACK success */
             IAP_TX_INIT(0x00, 0x19);
             if (DEVICE_TRANSID_ACTIVE) {
@@ -1101,6 +1106,9 @@ void iap_handlepkt_mode0(const unsigned int len, const unsigned char *buf)
 
             iap_send_tx();
             device.auth.state = AUST_AUTH;
+#ifdef LOGF_ENABLE
+            logf("iap: AUTH STATE -> AUST_AUTH");
+#endif
             if (DEVICE_LINGO_SUPPORTED(0x05))
                 iap_high_power_arm();
             /* GetAccessoryInfo (0x27) is for accessories that
@@ -1150,6 +1158,10 @@ void iap_handlepkt_mode0(const unsigned int len, const unsigned char *buf)
          */
         case 0x1A:
         {
+#ifdef LOGF_ENABLE
+            logf("iap: AUTH RESULT -> OK");
+#endif
+
             CHECKAUTH;
 
             cmd_ack(cmd, IAP_ACK_CMD_FAILED);
@@ -1631,7 +1643,7 @@ void iap_handlepkt_mode0(const unsigned int len, const unsigned char *buf)
             uint8_t tid_hi = buf[2];
             uint8_t tid_lo = buf[3];
 #ifdef LOGF_ENABLE
-            logf("iap: StartIDPS tid=%02x%02x", tid_hi, tid_lo);
+            logf("iap: StartIDPS tid=%02x%02x auth=%d idps=%d started=%d", tid_hi, tid_lo,device.auth.state, device.auth.idps, device.auth.idps_started);
 #endif
             /* MFi p.96: "If the accessory sends StartIDPS again, while
              * the Apple device is in the IDPS process, the Apple device
