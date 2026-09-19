@@ -1046,7 +1046,10 @@ static void iap_track_changed(unsigned short id, void *param)
         iap_audio_pending_frequency = frequency;
         if (!device.audio_init_pending)
         {
-            device.audio_init_pending = true;
+            //device.audio_init_pending = true;
+#ifdef LOGF_ENABLE
+            logf("Would have set audio_init_pending to true here but its now disabled");
+#endif
             queue_post(&iap_queue, IAP_EV_TICK, 0);
         }
     }
