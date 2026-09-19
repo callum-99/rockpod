@@ -225,6 +225,25 @@ struct device_t {
 };
 
 extern struct device_t device;
+
+/*
+ * Authentication challenge used by GetDevAuthenticationSignature (0x17).
+ *
+ * The authentication state machine sends 0x17 from iap_periodic(), which
+ * can run after the RX packet containing the source data has already been
+ * removed from the RX buffer.  Therefore 0x17 must never read iap_rxstart
+ * directly.
+ *
+ * Rockbox does not currently verify the returned authentication signature,
+ * so this preserves the existing behaviour of using arbitrary challenge
+ * data, but keeps a stable copy for the lifetime of the authentication
+ * exchange.
+ */
+#define IAP_AUTH_CHALLENGE_MAX 20
+
+extern unsigned char iap_auth_challenge[IAP_AUTH_CHALLENGE_MAX];
+extern unsigned int iap_auth_challenge_len;
+
 /* MFi spec 2.4.2: "All lingo-authenticated commands and features are
  * available to accessories once the Apple device has sent the accessory
  * an AckAccessoryAuthenticationInfo command with success status (0x00).

@@ -323,6 +323,9 @@ static volatile bool interface_pause_pending;
 
 struct device_t device;
 
+unsigned char iap_auth_challenge[IAP_AUTH_CHALLENGE_MAX];
+unsigned int iap_auth_challenge_len;
+
 static void iap_apply_pending_interface_pause(void)
 {
     if (!interface_pause_pending)
@@ -494,6 +497,12 @@ void iap_reset_auth(struct auth_t* auth)
     auth->state = AUST_NONE;
     auth->max_section = 0;
     auth->next_section = 0;
+
+    /*
+     * The challenge belongs to one authentication exchange only.
+     */
+    memset(iap_auth_challenge, 0, sizeof(iap_auth_challenge));
+    iap_auth_challenge_len = 0;
 
     /* The authentication version belongs to the accessory that declared
      * it, not to the iPod. iap-core.c:1915 sizes the challenge from it
@@ -2270,20 +2279,52 @@ void iap_periodic(void)
 
         case AUST_CERTDONE:
         {
-            /* Send GetDevAuthenticationSignature with 20 bytes of
-             * challenge and retry counter 1.  We use whatever happens
-             * to be in the RX buffer as the challenge data. */
+                unsigned int challenge_len =
+                (device.auth.version == 0x100) ? 16 : 20;
+        
+            /*
+             * Do not use iap_rxstart here.
+             *
+             * AUST_CERTDONE is normally reached from iap_periodic(), after the
+             * packet that caused the state transition has already been removed
+             * from the RX queue/buffer.  iap_rxstart therefore does not identify
+             * the certificate packet anymore.
+             */
+            if (iap_auth_challenge_len != challenge_len)
+            {
+#ifdef LOGF_ENABLE
+                logf("iap: AUTH no challenge len=%u expected=%u",
+                     iap_auth_challenge_len, challenge_len);
+#endif
+        
+                /*
+                 * There is no valid challenge to send.  Do not send a malformed
+                 * 0x17 packet.
+                 */
+                device.auth.state = AUST_AUTH;
+                device.auth.deadline = 0;
+                break;
+            }
+        
+#ifdef LOGF_ENABLE
+            logf("iap: AUTH sending 0x17 challenge len=%u", challenge_len);
+#endif
+        
             IAP_TX_INIT(0x00, 0x17);
             IAP_TX_PUT_IPOD_AUTH_TRANSID();
-            IAP_TX_PUT_DATA(iap_rxstart,
-                        (device.auth.version == 0x100) ? 16 : 20);
+        
+            IAP_TX_PUT_DATA(iap_auth_challenge, challenge_len);
+        
+            /* Retry counter */
             IAP_TX_PUT(0x01);
-
+        
             iap_send_tx();
+        
             device.auth.state = AUST_CHASENT;
-            /* Auth2's class is unknown, so use its 75-second upper bound. */
+        
             device.auth.deadline = current_tick
                 + ((device.auth.version == 0x100) ? 7 * HZ : 75 * HZ);
+        
             break;
         }
 

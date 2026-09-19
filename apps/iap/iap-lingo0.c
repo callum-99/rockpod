@@ -1000,31 +1000,74 @@ void iap_handlepkt_mode0(const unsigned int len, const unsigned char *buf)
                 }
             }
             if (device.auth.state == AUST_CERTALLRECEIVED) {
-                /* All certificate data received. ACK OK.
-                 * Periodic handler sends GetDevAuthenticationSignature
-                 * (0x17) on the next tick via AUST_CERTDONE.
+                /*
+                 * Preserve the challenge source while this RX packet is still valid.
+                 *
+                 * iap_periodic() sends 0x17 later, after iap_handlepkt() has removed
+                 * the current RX packet from the RX buffer.  Reading iap_rxstart from
+                 * AUST_CERTDONE therefore reads stale/next-buffer data.
+                 *
+                 * The existing Rockbox implementation does not verify the returned
+                 * signature, so the actual challenge contents are currently not used
+                 * cryptographically.  Preserve the historical behaviour by using
+                 * available packet data, but make an explicit copy now.
                  */
+                {
+                    unsigned int challenge_len =
+                        (device.auth.version == 0x100) ? 16 : 20;
+            
+                    /*
+                     * Use certificate data, not the packet's mode/command/TID bytes.
+                     *
+                     * For IDPS packets:
+                     *
+                     *   buf[0] = 0x00
+                     *   buf[1] = 0x15
+                     *   buf[2..3] = transaction ID
+                     *   buf[4..] = authentication data
+                     *
+                     * 'off' is already 4 in IDPS mode and 2 otherwise.
+                     *
+                     * We need enough certificate data to fill the challenge.
+                     */
+                    if (len >= off + challenge_len) {
+                        memcpy(iap_auth_challenge, &buf[off], challenge_len);
+                        iap_auth_challenge_len = challenge_len;
+                    } else {
+                        /*
+                         * This should not happen for a valid final certificate packet.
+                         * Do not allow the later 0x17 code to send uninitialized data.
+                         */
+                        iap_auth_challenge_len = 0;
+                    }
+                }
+            
+                /* All certificate data received. ACK OK. */
                 IAP_TX_INIT(0x00, 0x16);
                 if (DEVICE_TRANSID_ACTIVE) {
-                    IAP_TX_PUT(tid_hi); IAP_TX_PUT(tid_lo);
+                    IAP_TX_PUT(tid_hi);
+                    IAP_TX_PUT(tid_lo);
                 }
                 IAP_TX_PUT(0x00);
-
+            
                 iap_send_tx();
-
-                /* MFi spec Table 2-8 step 4: send GetAccessoryInfo
+            
+                /*
+                 * MFi spec Table 2-8 step 4: send GetAccessoryInfo
                  * between AckAccessoryAuthenticationInfo and
-                 * GetAccessoryAuthenticationSignature (non-IDPS only). */
+                 * GetAccessoryAuthenticationSignature (non-IDPS only).
+                 */
                 if (!device.auth.idps)
                 {
                     IAP_TX_INIT(0x00, 0x27);
                     IAP_TX_PUT(0x00);
                     iap_send_tx();
                 }
-
+            
                 device.auth.deadline = 0;
                 device.auth.state = AUST_CERTDONE;
             }
+
             break;
         }
 
