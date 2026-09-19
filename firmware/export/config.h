@@ -1388,9 +1388,9 @@ Lyre prototype 1 */
 #endif
 #endif
 
-#if defined(USB_HAS_ISOCHRONOUS) && (CONFIG_CPU == S5L8702)
+//#if defined(USB_HAS_ISOCHRONOUS) && (CONFIG_CPU == S5L8702)
 #define USB_ENABLE_AUDIO
-#endif
+//#endif
 
 #endif /* BOOTLOADER */
 
