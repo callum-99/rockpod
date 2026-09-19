@@ -180,6 +180,11 @@ void iap_handlepkt_mode0(const unsigned int len, const unsigned char *buf)
         l0_tid_lo = buf[3];
     }
 
+    if(l0_has_tid)
+        logf("L0 RX cmd=%02x tid=%02x%02x", buf[1], l0_tid_hi, l0_tid_lo);
+    else
+        logf("L0 RX cmd=%02x no-tid", buf[1]);
+
     /* MFi 2.6.1.2 (p.111): "Support for transaction IDs must be
      * disabled before sending an IdentifyDeviceLingoes command", and
      * 2.6.1.4 (p.112) says the same of the other two exempt commands --

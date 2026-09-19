@@ -1243,7 +1243,21 @@ void iap_send_tx(void)
     *(iap_txnext) = 0x100 - (chksum & 0xFF);
 
 #if defined(LOGF_ENABLE) && defined(ROCKBOX_HAS_LOGF)
-    logf("T: %s", hexstring(txstart+3, (iap_txnext - txstart)-3));
+    //logf("T: %s", hexstring(txstart+3, (iap_txnext - txstart)-3));
+    if (txlen >= 2)
+        logf("IAP TX L%02X C%02X len=%d: %s",
+             iap_txpayload[0],
+             iap_txpayload[1],
+             (int)txlen,
+             hexstring(iap_txpayload, txlen));
+    else
+        logf("IAP TX len=%d: %s",
+             (int)txlen,
+             hexstring(iap_txpayload, txlen));
+    
+    logf("IAP TX WIRE len=%d: %s",
+         (int)((iap_txnext - txstart) + 1),
+         hexstring(txstart, (iap_txnext - txstart) + 1));
 #endif
     /* Closed before the send, not after.
      *
@@ -3649,6 +3663,10 @@ void iap_handlepkt(void)
 
         /* handle command by mode */
         length = get_u16(iap_rxstart);
+#ifdef LOGF_ENABLE
+        logf("IAP RX len=%u", length);
+        logf("IAP RX %s", hexstring(iap_rxstart + 2, length));
+#endif
 #if defined(LOGF_ENABLE) && defined(ROCKBOX_HAS_LOGF)
         logf("R: %s", hexstring(iap_rxstart+2, (length)));
 #endif
